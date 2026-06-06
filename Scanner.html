@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+
+body{
+font-family:Arial,sans-serif;
+background:#005430;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+margin:0;
+}
+
+.box{
+background:white;
+padding:30px;
+border-radius:15px;
+width:500px;
+text-align:center;
+box-shadow:0 8px 25px rgba(0,0,0,.15);
+}
+
+#reader{
+width:100%;
+margin-top:20px;
+}
+
+.valid{
+color:green;
+font-weight:bold;
+font-size:22px;
+}
+
+.invalid{
+color:red;
+font-weight:bold;
+font-size:22px;
+}
+
+.info{
+margin-top:15px;
+font-size:18px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>QR Scanner</h2>
+
+<div id="reader"></div>
+
+<div id="result"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+
+import {
+getFirestore,
+collection,
+query,
+where,
+getDocs
+}
+from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdaQHudDwfHgaj8KrYOAX-wLgCZRGMBdM",
+  authDomain: "eventqr-f04a3.firebaseapp.com",
+  projectId: "eventqr-f04a3",
+  storageBucket: "eventqr-f04a3.firebasestorage.app",
+  messagingSenderId: "255978433738",
+  appId: "1:255978433738:web:0e7316230b649701cc1833"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let scanned = false;
+
+async function onScanSuccess(decodedText){
+
+if(scanned) return;
+
+scanned = true;
+
+const q = query(
+collection(db,"users"),
+where("qrId","==",decodedText)
+);
+
+const snapshot = await getDocs(q);
+
+if(snapshot.empty){
+
+document.getElementById("result").innerHTML = `
+<div class="invalid">
+❌ Invalid QR Code
+</div>
+`;
+
+setTimeout(()=>{
+scanned=false;
+},3000);
+
+return;
+
+}
+
+const user = snapshot.docs[0].data();
+
+document.getElementById("result").innerHTML = `
+
+<div class="valid">
+✅ Valid User
+</div>
+
+<div class="info">
+<b>Name:</b> ${user.name}
+</div>
+
+<div class="info">
+<b>ID:</b> ${user.userId}
+</div>
+
+<div class="info">
+<b>Email:</b> ${user.email}
+</div>
+
+`;
+
+setTimeout(()=>{
+scanned=false;
+},5000);
+
+}
+
+const scanner =
+new Html5QrcodeScanner(
+"reader",
+{
+fps:10,
+qrbox:250
+}
+);
+
+scanner.render(onScanSuccess);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Registration</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial,sans-serif;
+background:#005430;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.box{
+background:white;
+padding:30px;
+border-radius:15px;
+width:450px;
+text-align:center;
+box-shadow:0 8px 25px rgba(0,0,0,.15);
+}
+
+input{
+width:90%;
+padding:12px;
+margin:10px 0;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:16px;
+box-sizing:border-box;
+}
+
+.start-btn{
+font-size:18px;
+padding:14px 40px;
+border:none;
+border-radius:50px;
+cursor:pointer;
+background:#145214;
+color:white;
+margin-top:10px;
+}
+
+.start-btn:hover{
+opacity:.9;
+}
+
+#qrcode{
+margin-top:25px;
+display:flex;
+justify-content:center;
+}
+
+p{
+line-height:1.8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<div id="registerPage">
+
+<h2>تسجيل الحضور</h2>
+
+<input
+type="text"
+id="name"
+placeholder="الاسم الكامل"
+/>
+
+<input
+type="email"
+id="email"
+placeholder="البريد الإلكتروني"
+/>
+
+<input
+type="text"
+id="userId"
+placeholder="الرقم التعريفي (6 أرقام)"
+maxlength="6"
+/>
+
+<button
+class="start-btn"
+id="registerBtn">
+تسجيل
+</button>
+
+</div>
+
+<div
+id="successPage"
+style="display:none;">
+
+<h2>✅ تم تسجيل بياناتك بنجاح</h2>
+
+<p>
+يرجى الاحتفاظ بهذا الكود وإبرازه يوم الفعالية
+</p>
+
+<div id="qrcode"></div>
+
+<br>
+
+<button
+class="start-btn"
+id="newRegisterBtn">
+تسجيل شخص آخر
+</button>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+
+import {
+getFirestore,
+collection,
+addDoc,
+query,
+where,
+getDocs
+}
+from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdaQHudDwfHgaj8KrYOAX-wLgCZRGMBdM",
+  authDomain: "eventqr-f04a3.firebaseapp.com",
+  projectId: "eventqr-f04a3",
+  storageBucket: "eventqr-f04a3.firebasestorage.app",
+  messagingSenderId: "255978433738",
+  appId: "1:255978433738:web:0e7316230b649701cc1833"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+document
+.getElementById("registerBtn")
+.addEventListener("click", registerUser);
+
+document
+.getElementById("newRegisterBtn")
+.addEventListener("click", registerAnother);
+
+async function registerUser(){
+
+const name =
+document.getElementById("name").value.trim();
+
+const email =
+document.getElementById("email").value.trim();
+
+const userId =
+document.getElementById("userId").value.trim();
+
+if(!name || !email || !userId){
+
+alert("يرجى إدخال جميع البيانات");
+return;
+
+}
+
+const emailRegex =
+/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if(!emailRegex.test(email)){
+
+alert("يرجى إدخال بريد إلكتروني صحيح");
+return;
+
+}
+
+if(!/^\d{6}$/.test(userId)){
+
+alert("الرقم التعريفي يجب أن يكون 6 أرقام");
+return;
+
+}
+
+const existingId = query(
+collection(db,"users"),
+where("userId","==",userId)
+);
+
+const idSnapshot =
+await getDocs(existingId);
+
+if(!idSnapshot.empty){
+
+alert("هذا الرقم التعريفي مسجل بالفعل");
+return;
+
+}
+
+const existingEmail = query(
+collection(db,"users"),
+where("email","==",email)
+);
+
+const emailSnapshot =
+await getDocs(existingEmail);
+
+if(!emailSnapshot.empty){
+
+alert("هذا البريد الإلكتروني مسجل بالفعل");
+return;
+
+}
+
+const qrId =
+crypto.randomUUID();
+
+await addDoc(
+collection(db,"users"),
+{
+name:name,
+email:email,
+userId:userId,
+qrId:qrId,
+checkedIn:false,
+createdAt:new Date()
+}
+);
+
+document.getElementById("registerPage").style.display = "none";
+document.getElementById("successPage").style.display = "block";
+
+document.getElementById("qrcode").innerHTML = "";
+
+new QRCode(
+document.getElementById("qrcode"),
+{
+text: qrId,
+width:250,
+height:250
+}
+);
+
+}
+
+function registerAnother(){
+
+document.getElementById("name").value = "";
+document.getElementById("email").value = "";
+document.getElementById("userId").value = "";
+
+document.getElementById("qrcode").innerHTML = "";
+
+document.getElementById("successPage").style.display = "none";
+document.getElementById("registerPage").style.display = "block";
+
+}
+
+</script>
+
+</body>
+</html>
